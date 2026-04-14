@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pushdown Automata</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#020617;
+  --bg2:#0f172a;
+  --bg3:#1e293b;
+  --border:#334155;
+  --border2:#475569;
+  --text:#f1f5f9;
+  --muted:#94a3b8;
+  --neon-g:#2ed573;
+  --neon-r:#ff4757;
+  --neon-y:#ffa502;
+  --neon-b:#1e90ff;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+}
+
+body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
+
+/* ── HEADER ── */
+header{
+  background:rgba(15,23,42,0.85);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);color:var(--text);
+  padding:10px 24px;display:flex;align-items:center;gap:14px;
+  flex-shrink:0;position:sticky;top:0;z-index:100;
+}
+header h1{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.1em;color:var(--neon-b)}
+.hbtns{margin-left:auto;display:flex;gap:6px}
+
+/* ── TAB BAR ── */
+.tabbar{
+  display:flex;
+  background:rgba(15,23,42,0.85);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:2px solid var(--border);
+  flex-shrink:0;position:sticky;top:0;z-index:99;
+}
+.tabbar-tab{
+  padding:10px 22px;font-family:var(--mono);font-size:11px;font-weight:500;
+  cursor:pointer;border:none;background:transparent;color:var(--muted);
+  border-bottom:2px solid transparent;margin-bottom:-2px;letter-spacing:.05em;
+  transition:color .15s,border-color .15s;white-space:nowrap;
+}
+.tabbar-tab:hover{color:var(--text)}
+.tabbar-tab.active{color:var(--neon-y);font-weight:600;border-bottom:2px solid var(--neon-y)}
+
+/* ── VIEWS ── */
+.view{display:none;flex:1;overflow:hidden}
+.view.active{display:flex;flex-direction:column}
+
+/* ── SHARED PRIMITIVES ── */
+.btn{
+  display:inline-flex;align-items:center;gap:5px;padding:6px 12px;
+  border:1px solid var(--border2);background:var(--bg2);
+  font-family:var(--mono);font-size:11px;font-weight:500;cursor:pointer;
+  color:var(--text);transition:all .2s;border-radius:6px;white-space:nowrap
+}
+.btn:hover{border-color:var(--neon-b);color:var(--neon-b)}
+.btn.pri{border-color:var(--neon-g);color:var(--neon-g)}
+.btn.pri:hover{background:var(--neon-g);color:var(--bg);box-shadow:0 0 14px rgba(46,213,115,0.45)}
+.btn.danger{border-color:var(--neon-r);color:var(--neon-r)}
+.btn.danger:hover{background:var(--neon-r);color:var(--bg)}
+.btn.accent{border-color:var(--neon-y);color:var(--neon-y)}
+.btn.accent:hover{background:var(--neon-y);color:var(--bg);box-shadow:0 0 14px rgba(255,165,2,0.45)}
+.btn.sm{padding:3px 9px;font-size:10px}
+.btn-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+
+input[type=text],select,textarea{
+  background:var(--bg);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:11px;padding:6px 9px;outline:none;
+  border-radius:6px;transition:border-color .15s;width:100%
+}
+input[type=text]:focus,select:focus,textarea:focus{border-color:var(--neon-b)}
+select option{background:var(--bg2)}
+textarea{resize:vertical;min-height:58px}
+label{font-size:10px;font-family:var(--mono);color:var(--muted);display:block;margin-bottom:3px}
+.fr{margin-bottom:9px}
+.fri{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px}
+
+.sec-title{
+  font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:10px;
+  padding-bottom:6px;border-bottom:1px solid var(--border)
+}
+
+.pill{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 8px;border:1px solid;border-radius:6px;letter-spacing:.06em}
+.pill.accept{border-color:var(--neon-g);color:var(--neon-g);background:rgba(46,213,115,.08)}
+.pill.reject{border-color:var(--neon-r);color:var(--neon-r);background:rgba(255,71,87,.08)}
+.pill.idle{border-color:var(--border2);color:var(--muted)}
+.pill.running{border-color:var(--neon-y);color:var(--neon-y);background:rgba(255,165,2,.08)}
+
+/* ── WARN BAR ── */
+.warn-bar{
+  display:none;background:rgba(255,165,2,.07);border-bottom:1px solid var(--neon-y);
+  padding:6px 16px;font-family:var(--mono);font-size:10px;color:var(--neon-y);
+  align-items:center;gap:10px;flex-shrink:0
+}
+.warn-bar.show{display:flex}
+
+/* ══════════════════════════════════════
+   THEORY VIEW
+══════════════════════════════════════ */
+#view-theory{overflow-y:auto;background:var(--bg)}
+.theory-body{max-width:820px;margin:0 auto;padding:44px 38px}
+.theory-body h2{font-family:var(--mono);font-size:18px;font-weight:600;color:var(--neon-b);margin-bottom:6px;letter-spacing:.06em}
+.theory-body .theory-subtitle{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:32px}
+.theory-section{margin-bottom:36px;padding:20px 24px;background:var(--bg2);border:1px solid var(--border);border-radius:6px}
+.theory-section h3{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--neon-y);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.theory-section p{font-size:13px;color:var(--muted);line-height:2.0;margin-bottom:12px}
+.theory-section p strong{color:var(--text);font-family:var(--mono)}
+.theory-tuple{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--neon-b);padding:20px 24px;margin-bottom:16px}
+.theory-tuple .tuple-line{font-family:var(--mono);font-size:15px;color:var(--neon-y);margin-bottom:16px;letter-spacing:.02em}
+.theory-tuple table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:11px}
+.theory-tuple td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.theory-tuple td:first-child{color:var(--neon-g);width:50px;font-weight:600}
+.theory-tuple td:last-child{color:var(--muted)}
+.theory-ops{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:12px}
+.op-card{background:var(--bg2);border:1px solid var(--border);padding:14px 16px}
+.op-card .op-label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em;margin-bottom:6px}
+.op-card.push .op-label{color:var(--neon-g)}
+.op-card.pop  .op-label{color:var(--neon-r)}
+.op-card.eps  .op-label{color:var(--neon-b)}
+.op-card p{font-size:11px;color:var(--muted);line-height:1.6}
+.theory-note{background:var(--bg3);border:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7;margin-top:16px}
+.theory-note strong{color:var(--text)}
+.next-btn-wrap{margin-top:32px;display:flex;justify-content:flex-end}
+
+/* ══════════════════════════════════════
+   LIBRARY VIEW
+══════════════════════════════════════ */
+#view-library{overflow-y:auto;background:var(--bg)}
+.lib-inner{padding:24px 28px}
+.lib-header{margin-bottom:18px}
+.lib-header h2{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+.lib-header p{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.preset-card{background:var(--bg2);border:1px solid var(--border);padding:16px 18px;cursor:pointer;transition:border-color .2s,transform .2s,box-shadow .2s;border-radius:6px}
+.preset-card:hover{border-color:var(--neon-y);transform:translateY(-4px);box-shadow:0 12px 24px rgba(0,0,0,0.4)}
+.pc-tag{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:5px}
+.pc-name{font-family:var(--mono);font-size:13px;color:var(--neon-y);margin-bottom:6px;font-weight:600}
+.pc-desc{font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px}
+.pc-meta{font-family:var(--mono);font-size:9px;color:var(--border2)}
+.pc-footer{margin-top:10px;display:flex;justify-content:space-between;align-items:center}
+
+/* ══════════════════════════════════════
+   EDITOR VIEW
+══════════════════════════════════════ */
+#view-editor{flex-direction:row;overflow:hidden}
+.editor-panel{width:310px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.ep{border-bottom:1px solid var(--border);padding:17px}
+.ep:last-child{border-bottom:none}
+.ep-title{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+
+.ttbl-wrap{overflow-x:auto;border:1px solid var(--border)}
+.ttbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+.ttbl th{background:var(--bg3);color:var(--muted);padding:5px 7px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;border-right:1px solid var(--border);border-bottom:1px solid var(--border);white-space:nowrap;text-align:center}
+.ttbl td{border:1px solid var(--border);padding:0}
+.ttbl td input{border:none;background:transparent;color:var(--text);padding:5px 7px;width:100%;font-family:var(--mono);font-size:11px;min-width:46px;outline:none}
+.ttbl td input:focus{background:rgba(30,144,255,.07)}
+.ttbl tr:hover td{background:var(--bg3)}
+.ttbl tr.t-active td{background:rgba(255,165,2,.08)}
+.ttbl td.dcol{width:22px;text-align:center;cursor:pointer;color:var(--neon-r);font-size:13px;padding:4px 2px}
+.ttbl td.dcol:hover{background:rgba(255,71,87,.2)}
+.t-add{width:100%;background:var(--bg3);border:none;border-top:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:10px;padding:5px;cursor:pointer;transition:color .15s,background .15s;text-align:center}
+.t-add:hover{color:var(--neon-g);background:rgba(46,213,115,.07)}
+
+.schips{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border:1px solid var(--border2);font-family:var(--mono);font-size:10px;color:var(--text);border-radius:6px}
+.chip.start{border-color:var(--neon-g);color:var(--neon-g)}
+.chip .cx{cursor:pointer;color:var(--neon-r);font-size:13px;line-height:1}
+
+.editor-right{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.er-header{display:flex;align-items:baseline;justify-content:space-between}
+
+.itabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:9px}
+.itab{padding:4px 12px;font-family:var(--mono);font-size:10px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;color:var(--muted);background:none;border-top:none;border-left:none;border-right:none;transition:color .15s}
+.itab.active{color:var(--neon-b);border-bottom-color:var(--neon-b)}
+
+/* ══════════════════════════════════════
+   SIMULATOR VIEW
+══════════════════════════════════════ */
+#view-sim{flex-direction:column;overflow:hidden}
+.sim-ctrl{background:var(--bg2);border-bottom:1px solid var(--border);padding:9px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
+.sim-ctrl label{margin:0;white-space:nowrap;color:var(--muted)}
+.sim-ctrl input[type=text]{max-width:180px}
+.ctrls-r{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.spd-wrap{display:flex;align-items:center;gap:6px}
+.spd-wrap label{font-size:10px;color:var(--muted)}
+input[type=range]{width:70px;accent-color:var(--neon-b)}
+
+.sbar{display:flex;align-items:center;gap:12px;padding:6px 16px;background:var(--bg2);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--muted);flex-wrap:wrap;flex-shrink:0}
+
+.sim-body{flex:1;display:grid;grid-template-columns:70% 30%;grid-template-rows:auto 1fr;overflow:hidden}
+
+/* Tape */
+.tape-bar{grid-column:1/3;background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;flex-shrink:0}
+.tape-row{display:flex;gap:0;overflow-x:auto;padding-bottom:3px}
+.tc{min-width:34px;height:34px;border:1px solid var(--border2);border-right:none;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px;font-weight:700;flex-shrink:0;position:relative;transition:background .2s,color .2s}
+.tc:last-child{border-right:1px solid var(--border2)}
+.tc.t-past{background:var(--bg3);color:var(--muted)}
+.tc.t-cur{background:var(--neon-y);color:var(--bg);border-color:var(--neon-y)}
+.tc.t-future{background:var(--bg);color:var(--text)}
+.tc .tidx{position:absolute;bottom:1px;right:2px;font-size:7px;opacity:.4}
+
+/* Viz left panel */
+.viz-left{border-right:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column}
+.diag-area{flex:1;overflow:hidden;display:grid;grid-template-columns:1fr 130px;background-image:radial-gradient(var(--border2) 1px, transparent 1px);background-size:20px 20px;background-color:var(--bg)}
+.svg-wrap{overflow:auto}
+#state-svg{display:block;width:100%;height:100%;overflow:visible}
+
+/* Stack */
+.stack-panel{border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.stack-inner{flex:1;display:flex;flex-direction:column-reverse;align-items:center;justify-content:flex-start;gap:2px;overflow-y:auto;padding:8px 6px}
+.sc{width:100%;max-width:110px;height:28px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);flex-shrink:0;animation:scIn .12s ease}
+.sc.stk-top{border-color:var(--neon-g);color:var(--neon-g);background:rgba(46,213,115,.08)}
+.sc.stk-bot{border-color:var(--border);color:var(--muted);background:var(--bg3)}
+@keyframes scIn{from{transform:scaleY(0);opacity:0}to{transform:scaleY(1);opacity:1}}
+.slbl{font-family:var(--mono);font-size:8px;color:var(--muted);text-align:center;letter-spacing:.1em;padding:4px 0;flex-shrink:0}
+
+/* Log panel */
+.log-panel{display:flex;flex-direction:column;overflow:hidden;border-left:1px solid var(--border)}
+.log-head{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.log-body{flex:1;overflow-y:auto;padding:8px 10px;font-family:var(--mono);font-size:10px;line-height:1.65}
+.log-entry{margin-bottom:4px;padding:4px 8px;border-left:2px solid var(--border);color:var(--muted)}
+.log-entry.push{border-left-color:var(--neon-g);color:var(--neon-g)}
+.log-entry.pop{border-left-color:var(--neon-r);color:var(--neon-r)}
+.log-entry.cur{border-left-color:var(--neon-y);color:var(--text);background:rgba(255,165,2,.05)}
+.log-entry.accept{border-left-color:var(--neon-g);color:var(--neon-g);font-weight:700}
+.log-entry.reject{border-left-color:var(--neon-r);color:var(--neon-r);font-weight:700}
+.log-entry.info{border-left-color:var(--neon-b);color:var(--neon-b)}
+
+/* ND tree strip */
+#tree-strip{display:none;border-top:1px solid var(--border);padding:10px 16px;background:var(--bg2);overflow-x:auto;max-height:130px}
+#tree-strip.show{display:block}
+
+/* Diagram section */
+.diag-sec{padding:10px 16px;background:var(--bg2);overflow-x:auto}
+
+/* Notif */
+.notif{position:fixed;bottom:14px;right:14px;background:var(--bg3);border:1px solid var(--border2);font-family:var(--mono);font-size:11px;color:var(--text);padding:8px 14px;z-index:999;opacity:0;transform:translateY(6px);transition:all .2s;pointer-events:none}
+.notif.show{opacity:1;transform:translateY(0)}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2)}
+
+/* ── SVG NEON GLOW on active elements ── */
+circle[stroke="#ffa502"]{filter:drop-shadow(0 0 6px rgba(255,165,2,0.6))}
+path[stroke="#ffa502"]{filter:drop-shadow(0 0 6px rgba(255,165,2,0.6))}
+text[fill="#ffa502"]{filter:drop-shadow(0 0 4px rgba(255,165,2,0.5))}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <h1>PUSHDOWN AUTOMATA</h1>
+  <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">Interactive Simulator</span>
+  <div class="hbtns">
+    <button class="btn sm" onclick="downloadPDA()">&#8595; Export JSON</button>
+    <button class="btn sm" onclick="document.getElementById('upload-input').click()">&#8593; Import JSON</button>
+    <input type="file" id="upload-input" accept=".json" style="display:none" onchange="importPDA(event)">
+  </div>
+</header>
+
+<!-- TAB BAR: Theory -> Library -> Simulator -> Custom PDA -->
+<div class="tabbar" id="tabbar">
+  <button class="tabbar-tab active" id="tb-theory"  onclick="gotoView('theory')">Theory of PDA</button>
+  <button class="tabbar-tab"        id="tb-library" onclick="gotoView('library')">Library</button>
+  <button class="tabbar-tab"        id="tb-sim"     onclick="gotoView('sim')">Simulator</button>
+  <button class="tabbar-tab"        id="tb-editor"  onclick="gotoView('editor')">Custom PDA</button>
+</div>
+
+<!-- WARN BAR -->
+<div class="warn-bar" id="warn-bar">
+  <span>&#9888;</span>
+  <span>Simulation active. Editing transitions may invalidate the current run.</span>
+  <button class="btn sm danger" onclick="resetSim();document.getElementById('warn-bar').classList.remove('show')">Reset</button>
+</div>
+
+<!-- ════════════════════════════════════
+     VIEW 1: THEORY
+════════════════════════════════════ -->
+<div class="view active" id="view-theory">
+  <div class="theory-body">
+    <h2>Pushdown Automata (PDA) Theory</h2>
+    <div class="theory-subtitle">Formal Language Theory &mdash; Context-Free Languages</div>
+
+    <div class="theory-section">
+      <h3>What is a PDA?</h3>
+      <p>A <strong>Pushdown Automaton</strong> is a finite automaton augmented with an external memory structure called a <strong>stack</strong>. This unbounded stack allows the PDA to remember an arbitrary amount of information, giving it the power to recognise <strong>Context-Free Languages (CFLs)</strong>, which regular finite automata cannot.</p>
+      <p>Conceptually, a PDA is an <strong>FA + a memory stack</strong>. While a DFA or NFA can only remember what state it is in, a PDA can push and pop symbols on a stack, enabling it to count, match nested structures, and track balanced sequences.</p>
+      <div class="theory-note">
+        <strong>Key insight:</strong> Every regular language is also a context-free language, but not every CFL is regular. The stack is precisely the additional resource that bridges this gap in the Chomsky hierarchy.
+      </div>
+    </div>
+
+    <div class="theory-section">
+      <h3>The 7-Tuple Definition</h3>
+      <p>Formally, a PDA is defined as a 7-tuple:</p>
+      <div class="theory-tuple">
+        <div class="tuple-line">M = (Q, &Sigma;, &Gamma;, &delta;, q&#8320;, Z, F)</div>
+        <table>
+          <tr><td>Q</td><td>A finite, non-empty set of <strong>states</strong></td></tr>
+          <tr><td>&Sigma;</td><td>Finite <strong>input alphabet</strong> &mdash; symbols the machine reads</td></tr>
+          <tr><td>&Gamma;</td><td>Finite <strong>stack alphabet</strong> &mdash; symbols that may appear on the stack</td></tr>
+          <tr><td>&delta;</td><td>Transition function: Q &times; (&Sigma; &cup; {&epsilon;}) &times; &Gamma; &rarr; P(Q &times; &Gamma;*)</td></tr>
+          <tr><td>q&#8320;</td><td><strong>Start state</strong> (q&#8320; &isin; Q)</td></tr>
+          <tr><td>Z</td><td><strong>Initial stack symbol</strong> &mdash; the bottom-of-stack marker (Z &isin; &Gamma;)</td></tr>
+          <tr><td>F</td><td>Set of <strong>accept / final states</strong> (F &sube; Q)</td></tr>
+        </table>
+      </div>
+      <p>The transition function &delta; is the heart of the machine. Given a current state, an optional input symbol (or &epsilon;), and the top-of-stack symbol, it returns a set of possible next configurations &mdash; making PDAs inherently <strong>nondeterministic</strong> in their general form.</p>
+    </div>
+
+    <div class="theory-section">
+      <h3>Stack Operations</h3>
+      <p>During execution, a PDA consumes input and updates its stack through three fundamental operations:</p>
+      <div class="theory-ops">
+        <div class="op-card push">
+          <div class="op-label">PUSH</div>
+          <p>Adding a new symbol (or string of symbols) to the top of the stack. Used to record information for later matching.</p>
+        </div>
+        <div class="op-card pop">
+          <div class="op-label">POP</div>
+          <p>Reading and removing the top symbol of the stack. The popped symbol must match the expected value in the transition rule.</p>
+        </div>
+        <div class="op-card eps">
+          <div class="op-label">&epsilon;-Transitions</div>
+          <p>Moving between states or updating the stack without consuming any input symbol. Enables nondeterministic guessing.</p>
+        </div>
+      </div>
+      <div class="theory-note">
+        <strong>Acceptance:</strong> A string is accepted by reaching a <strong>final state</strong> after consuming the entire input (acceptance by final state). Some formulations additionally require the stack to be empty (acceptance by empty stack). Both definitions recognise the same class of languages.
+      </div>
+    </div>
+
+    <div class="theory-section">
+      <h3>Classic Examples</h3>
+      <p>The preset library includes worked examples of the most instructive context-free languages:</p>
+      <p>
+        <strong>a&#7522;b&#7522;</strong> &mdash; push A for each <em>a</em>, pop for each <em>b</em>; the stack is empty iff counts match.<br>
+        <strong>Balanced parentheses</strong> &mdash; push on open bracket, pop on close; fundamental to compiler expression parsing.<br>
+        <strong>Even palindromes</strong> &mdash; nondeterministically guess the midpoint and mirror-match the stack.<br>
+        <strong>Equal a&rsquo;s and b&rsquo;s</strong> &mdash; track surplus symbols in any order using a two-symbol stack alphabet.
+      </p>
+    </div>
+
+    <div class="theory-section" id="theory-trace">
+      <h3>Formal Example Trace</h3>
+      <p>Consider the PDA for <strong>a&#7522;b&#7522;</strong> processing the input string <strong>aabb</strong>. The machine starts in state q0 with the bottom-of-stack marker Z. Each step shows a <em>(state, remaining input, stack)</em> configuration.</p>
+      <div class="theory-tuple" style="font-size:11px">
+        <table style="font-family:var(--mono);font-size:11px;width:100%;border-collapse:collapse">
+          <thead>
+            <tr>
+              <td style="color:var(--neon-b);font-weight:700;padding:5px 10px;border-bottom:1px solid var(--border)">Step</td>
+              <td style="color:var(--neon-b);font-weight:700;padding:5px 10px;border-bottom:1px solid var(--border)">State</td>
+              <td style="color:var(--neon-b);font-weight:700;padding:5px 10px;border-bottom:1px solid var(--border)">Remaining Input</td>
+              <td style="color:var(--neon-b);font-weight:700;padding:5px 10px;border-bottom:1px solid var(--border)">Stack (top &rarr; bottom)</td>
+              <td style="color:var(--neon-b);font-weight:700;padding:5px 10px;border-bottom:1px solid var(--border)">Rule Applied</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--muted)">0</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--neon-g)">q0</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--mono)">aabb</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--neon-y);font-family:var(--mono)">Z</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--muted)">Initial config</td></tr>
+            <tr><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--muted)">1</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--neon-g)">q1</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--mono)">abb</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--neon-y);font-family:var(--mono)">A Z</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--muted)">(q0, a, Z) &rarr; (q1, AZ)</td></tr>
+            <tr><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--muted)">2</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--neon-g)">q1</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--mono)">bb</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--neon-y);font-family:var(--mono)">A A Z</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--muted)">(q1, a, A) &rarr; (q1, AA)</td></tr>
+            <tr><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--muted)">3</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--neon-g)">q2</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--mono)">b</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--neon-y);font-family:var(--mono)">A Z</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--muted)">(q1, b, A) &rarr; (q2, &epsilon;)</td></tr>
+            <tr><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--muted)">4</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--neon-g)">q2</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--mono)">&epsilon;</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--neon-y);font-family:var(--mono)">Z</td><td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--muted)">(q2, b, A) &rarr; (q2, &epsilon;)</td></tr>
+            <tr><td style="padding:5px 10px;color:var(--muted)">&#10003;</td><td style="padding:5px 10px;color:var(--neon-g);font-weight:700">q2</td><td style="padding:5px 10px;color:var(--neon-g);font-weight:700">accepted</td><td style="padding:5px 10px;color:var(--neon-y);font-family:var(--mono)">Z</td><td style="padding:5px 10px;color:var(--neon-g)">q2 is a final state</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="theory-note">
+        <strong>Reading the trace:</strong> At each step the machine reads one symbol, matches the top-of-stack, and replaces it according to the transition rule. The counter in the stack perfectly mirrors the count of unmatched <em>a</em>'s — this is the essence of CFL membership testing.
+      </div>
+    </div>
+
+    <div class="theory-section" id="theory-apps">
+      <h3>Real-World Applications</h3>
+      <p>PDAs are not merely theoretical curiosities. They underpin a wide range of practical tools in software engineering and language processing:</p>
+      <div class="theory-ops">
+        <div class="op-card push">
+          <div class="op-label">COMPILERS</div>
+          <p>Every programming language parser uses a PDA-equivalent algorithm (LL, LR, LALR) to verify syntax, match brackets, and build parse trees from token streams.</p>
+        </div>
+        <div class="op-card pop">
+          <div class="op-label">XML / JSON</div>
+          <p>Well-formedness checking in XML and nested JSON documents relies on a stack to match opening and closing tags — a direct instantiation of the balanced parentheses PDA.</p>
+        </div>
+        <div class="op-card eps">
+          <div class="op-label">NATURAL LANGUAGE</div>
+          <p>Context-free grammars model sentence structure in human languages. CYK and Earley parsers, rooted in PDA theory, power syntax analysis in NLP pipelines.</p>
+        </div>
+      </div>
+      <div class="theory-note">
+        <strong>Key takeaway:</strong> Whenever a system must track matching pairs, nested structures, or balanced delimiters — from HTML linters to arithmetic expression evaluators — a pushdown automaton is the theoretical foundation.
+      </div>
+    </div>
+
+    <div class="next-btn-wrap">
+      <button class="btn accent" onclick="gotoView('library')">Explore Preset Library &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     VIEW 2: LIBRARY
+════════════════════════════════════ -->
+<div class="view" id="view-library">
+  <div class="lib-inner">
+    <div class="lib-header">
+      <h2>PRESET LIBRARY</h2>
+      <p>Select a language to load its PDA definition and jump directly to the simulator.</p>
+    </div>
+    <div class="lib-grid" id="lib-grid"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     VIEW 3: SIMULATOR
+════════════════════════════════════ -->
+<div class="view" id="view-sim">
+  <div class="sim-ctrl">
+    <label style="white-space:nowrap">INPUT STRING</label>
+    <input type="text" id="istr" placeholder="e.g. aabb" style="max-width:180px"/>
+    <div class="ctrls-r">
+      <label style="display:flex;align-items:center;gap:5px;font-size:10px;cursor:pointer;color:var(--muted)">
+        <input type="checkbox" id="nd-mode-sim"> ND Tree
+      </label>
+      <div class="spd-wrap"><label>Speed</label><input type="range" id="speed" min="100" max="1800" value="900" step="100"></div>
+      <button class="btn pri"    id="run-btn"        onclick="runSim()">Run &#9654;</button>
+      <button class="btn accent"                     onclick="stepFwd()">Step &#9654;</button>
+      <button class="btn"        id="step-back-btn"  onclick="stepBack()" disabled>&#9664; Back</button>
+      <button class="btn danger"                     onclick="resetSim()">Reset</button>
+    </div>
+  </div>
+
+  <div class="sbar">
+    <span>State: <b id="cur-st" style="color:var(--text)">&#8212;</b></span>
+    <span>Step: <b id="step-n" style="color:var(--text)">0</b></span>
+    <span>Head: <b id="head-n" style="color:var(--text)">0</b></span>
+    <span>Stack depth: <b id="sdepth" style="color:var(--text)">1</b></span>
+    <span id="rpill"><span class="pill idle">IDLE</span></span>
+    <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted)" id="pda-name-label"></span>
+  </div>
+
+  <div class="sim-body">
+    <!-- Tape spans full width -->
+    <div class="tape-bar" style="grid-column:1/3">
+      <div class="sec-title" style="margin-bottom:7px">Input Tape</div>
+      <div class="tape-row" id="tape-row"></div>
+    </div>
+
+    <!-- Left 70%: diagram + stack + log -->
+    <div class="viz-left">
+      <div class="diag-area">
+        <div class="svg-wrap" id="svg-wrap">
+          <svg id="state-svg"></svg>
+        </div>
+        <div class="stack-panel">
+          <div class="slbl" style="padding-top:8px">TOP</div>
+          <div class="stack-inner" id="stack-inner">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--border2);margin:auto">empty</div>
+          </div>
+          <div class="slbl">BOTTOM</div>
+          <div class="slbl" style="padding-bottom:6px;font-size:9px;color:var(--border2)">STACK</div>
+        </div>
+      </div>
+      <div id="tree-strip">
+        <div class="sec-title" style="margin-bottom:6px">Computation Tree</div>
+        <svg id="tree-svg"></svg>
+      </div>
+    </div>
+
+    <!-- Right 30%: live log -->
+    <div class="log-panel">
+      <div class="log-head">
+        <div class="sec-title" style="margin:0;border:none">Live Execution Log</div>
+        <button class="btn sm" onclick="clearLog()">Clear</button>
+      </div>
+      <div class="log-body" id="log-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     VIEW 4: EDITOR
+════════════════════════════════════ -->
+<div class="view" id="view-editor">
+  <div class="editor-panel">
+    <div class="ep">
+      <div class="ep-title">Stack Alphabet &Gamma;</div>
+      <div class="fr">
+        <label>Symbols (comma-separated; Z = bottom)</label>
+        <input type="text" id="gamma" value="Z,A,B"/>
+      </div>
+    </div>
+    <div class="ep">
+      <div class="ep-title">States</div>
+      <div class="fr"><label>Name</label><input type="text" id="sname" placeholder="q0, q1, qF"/></div>
+      <div class="fri">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="is-start"> Start</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="is-final"> Accept</label>
+      </div>
+      <button class="btn pri sm" onclick="addState()">+ Add State</button>
+      <div class="schips" id="schips"></div>
+    </div>
+    <div class="ep" style="flex:1">
+      <div class="ep-title">Bulk Import</div>
+      <div class="itabs">
+        <button class="itab active" onclick="switchBulk('jflap',this)">JFLAP</button>
+        <button class="itab"        onclick="switchBulk('crock',this)">Simple</button>
+      </div>
+      <div id="bi-jflap">
+        <label>from, input, pop, push, to</label>
+        <textarea id="bk-jflap" placeholder="q0, a, Z, AZ, q1&#10;q1, b, A, e, q2"></textarea>
+      </div>
+      <div id="bi-crock" style="display:none">
+        <label>from, input, pop -&gt; to, push</label>
+        <textarea id="bk-crock" placeholder="q0, a, Z -> q1, AZ"></textarea>
+      </div>
+      <div class="btn-row"><button class="btn sm" onclick="bulkImport()">Import</button></div>
+    </div>
+    <div class="ep">
+      <div class="ep-title">Options</div>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:8px">
+        <input type="checkbox" id="nd-mode"> ND branching (computation tree)
+      </label>
+      <div class="btn-row">
+        <button class="btn pri" onclick="buildAndRun()">Build &amp; Run &#9654;</button>
+        <button class="btn danger sm" onclick="clearAll()">Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="editor-right">
+    <div class="er-header">
+      <div class="ep-title" style="margin:0;border:none">
+        Transition Function &delta; &nbsp;<span style="color:var(--neon-b)" id="tc">0</span> rules
+      </div>
+      <button class="btn sm" onclick="addTransRow()">+ Row</button>
+    </div>
+    <div class="ttbl-wrap">
+      <table class="ttbl" id="ttbl">
+        <thead>
+          <tr><th>Current State</th><th>Input</th><th>Pop</th><th>Push</th><th>Next State</th><th></th></tr>
+        </thead>
+        <tbody id="ttbody"></tbody>
+      </table>
+      <button class="t-add" onclick="addTransRow()">+ add row</button>
+    </div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.7">
+      Use <span style="color:var(--neon-g)">e</span> for epsilon in any field.
+      Push accepts multi-char strings (e.g. <span style="color:var(--neon-g)">AZ</span>). All symbols must appear in &Gamma;.
+    </div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+'use strict';
+
+/* ─── EPSILON TOKEN ─────────────────────────────────────────────────────────── */
+var EPS = "e";
+
+/* ─── PRESETS ────────────────────────────────────────────────────────────────── */
+var PRESETS = [
+  {
+    id: "anbn", tag: "Classic CFL", name: "{a^n b^n | n >= 1}",
+    desc: "Push A for every a, pop A for every b. The canonical context-free language.",
+    gamma: "Z,A", sample: "aaabbb",
+    states: [
+      {name:"q0",isStart:true, isFinal:false},
+      {name:"q1",isStart:false,isFinal:false},
+      {name:"q2",isStart:false,isFinal:true}
+    ],
+    transitions: [
+      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q1"},
+      {from:"q1",input:"a",pop:"A",push:"AA",to:"q1"},
+      {from:"q1",input:"b",pop:"A",push:"e", to:"q2"},
+      {from:"q2",input:"b",pop:"A",push:"e", to:"q2"}
+    ]
+  },
+  {
+    id: "balanced", tag: "Parsing", name: "Balanced Parentheses",
+    desc: "Accepts strings of perfectly nested brackets. Core to expression parsing in compilers.",
+    gamma: "Z,(", sample: "((()))",
+    states: [
+      {name:"q0",isStart:true, isFinal:false},
+      {name:"q1",isStart:false,isFinal:true}
+    ],
+    transitions: [
+      {from:"q0",input:"(",pop:"Z",push:"(Z",to:"q0"},
+      {from:"q0",input:"(",pop:"(",push:"((",to:"q0"},
+      {from:"q0",input:")",pop:"(",push:"e", to:"q0"},
+      {from:"q0",input:"e",pop:"Z",push:"Z", to:"q1"}
+    ]
+  },
+  {
+    id: "palindrome", tag: "Midpoint Guess", name: "Even-length Palindromes over {a,b}",
+    desc: "Accepts even-length palindromes by guessing the midpoint nondeterministically.",
+    gamma: "Z,A,B", sample: "abba",
+    states: [
+      {name:"q0",isStart:true, isFinal:false},
+      {name:"q1",isStart:false,isFinal:false},
+      {name:"q2",isStart:false,isFinal:true}
+    ],
+    transitions: [
+      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q0"},{from:"q0",input:"b",pop:"Z",push:"BZ",to:"q0"},
+      {from:"q0",input:"a",pop:"A",push:"AA",to:"q0"},{from:"q0",input:"a",pop:"B",push:"AB",to:"q0"},
+      {from:"q0",input:"b",pop:"A",push:"BA",to:"q0"},{from:"q0",input:"b",pop:"B",push:"BB",to:"q0"},
+      {from:"q0",input:"e",pop:"Z",push:"Z", to:"q1"},{from:"q0",input:"e",pop:"A",push:"A", to:"q1"},
+      {from:"q0",input:"e",pop:"B",push:"B", to:"q1"},
+      {from:"q1",input:"a",pop:"A",push:"e", to:"q1"},{from:"q1",input:"b",pop:"B",push:"e", to:"q1"},
+      {from:"q1",input:"e",pop:"Z",push:"Z", to:"q2"}
+    ]
+  },
+  {
+    id: "eqab", tag: "Order-Independent", name: "{w | count(a) = count(b)}",
+    desc: "Equal number of a and b in any order. Stack tracks surplus of either symbol.",
+    gamma: "Z,A,B", sample: "aabbba",
+    states: [{name:"q0",isStart:true,isFinal:true}],
+    transitions: [
+      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q0"},{from:"q0",input:"a",pop:"A",push:"AA",to:"q0"},
+      {from:"q0",input:"a",pop:"B",push:"e", to:"q0"},{from:"q0",input:"b",pop:"Z",push:"BZ",to:"q0"},
+      {from:"q0",input:"b",pop:"B",push:"BB",to:"q0"},{from:"q0",input:"b",pop:"A",push:"e", to:"q0"}
+    ]
+  },
+  {
+    id: "anbmcnm", tag: "Multi-Counter", name: "{a^n b^m c^(n+m) | n,m >= 0}",
+    desc: "Stack accumulates A and B markers in sequence, then pops one per c.",
+    gamma: "Z,A,B", sample: "aabbcccc",
+    states: [
+      {name:"q0",isStart:true, isFinal:false},{name:"q1",isStart:false,isFinal:false},
+      {name:"q2",isStart:false,isFinal:false},{name:"q3",isStart:false,isFinal:true}
+    ],
+    transitions: [
+      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q0"},{from:"q0",input:"a",pop:"A",push:"AA",to:"q0"},
+      {from:"q0",input:"b",pop:"Z",push:"BZ",to:"q1"},{from:"q0",input:"b",pop:"A",push:"BA",to:"q1"},
+      {from:"q1",input:"b",pop:"Z",push:"BZ",to:"q1"},{from:"q1",input:"b",pop:"A",push:"BA",to:"q1"},
+      {from:"q1",input:"b",pop:"B",push:"BB",to:"q1"},
+      {from:"q1",input:"c",pop:"B",push:"e", to:"q2"},{from:"q0",input:"c",pop:"A",push:"e", to:"q2"},
+      {from:"q2",input:"c",pop:"A",push:"e", to:"q2"},{from:"q2",input:"c",pop:"B",push:"e", to:"q2"},
+      {from:"q2",input:"e",pop:"Z",push:"Z", to:"q3"},{from:"q0",input:"e",pop:"Z",push:"Z", to:"q3"}
+    ]
+  },
+  {
+    id: "anb2n", tag: "Ratio Language", name: "{a^n b^(2n) | n >= 0}",
+    desc: "Each a causes two stack pushes via an intermediate state. Demonstrates double-push logic.",
+    gamma: "Z,A", sample: "aaabbbbbb",
+    states: [
+      {name:"q0",isStart:true, isFinal:false},
+      {name:"q1",isStart:false,isFinal:false},
+      {name:"q2",isStart:false,isFinal:true}
+    ],
+    transitions: [
+      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q1"},{from:"q0",input:"a",pop:"A",push:"AA",to:"q1"},
+      {from:"q1",input:"e",pop:"A",push:"AA",to:"q0"},{from:"q1",input:"e",pop:"Z",push:"AZ",to:"q0"},
+      {from:"q0",input:"b",pop:"A",push:"e", to:"q0"},{from:"q0",input:"e",pop:"Z",push:"Z", to:"q2"}
+    ]
+  },
+  {
+    id: "reject_ab", tag: "Rejection Demo", name: "Rejects a^n b^m where n != m",
+    desc: "Same construction as anbn. Try inputs like aaab or abbb to observe rejection.",
+    gamma: "Z,A", sample: "aaab",
+    states: [
+      {name:"q0",isStart:true, isFinal:false},
+      {name:"q1",isStart:false,isFinal:false},
+      {name:"q2",isStart:false,isFinal:true}
+    ],
+    transitions: [
+      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q1"},
+      {from:"q1",input:"a",pop:"A",push:"AA",to:"q1"},
+      {from:"q1",input:"b",pop:"A",push:"e", to:"q2"},
+      {from:"q2",input:"b",pop:"A",push:"e", to:"q2"}
+    ]
+  }
+];
+
+/* ─── GLOBAL STATE ───────────────────────────────────────────────────────────── */
+var states      = [];
+var transitions = [];
+var simSteps    = [];
+var stepIdx     = 0;
+var running     = false;
+var simTimer    = null;
+var accepted    = false;
+var simHistory  = [];
+var currentName = "Custom PDA";
+var filterState = null;
+var treeNodes   = [], treeEdges = [];
+var bulkMode    = "jflap";
+var activeStateName = null;
+
+/* ─── VIEW SWITCHING ─────────────────────────────────────────────────────────── */
+function gotoView(v) {
+  document.querySelectorAll(".view").forEach(function(el){el.classList.remove("active");});
+  document.querySelectorAll(".tabbar-tab").forEach(function(el){el.classList.remove("active");});
+  document.getElementById("view-" + v).classList.add("active");
+  document.getElementById("tb-" + v).classList.add("active");
+  if (v === "editor") {
+    var live = simSteps.length > 0 && stepIdx > 0;
+    document.getElementById("warn-bar").classList.toggle("show", live);
+    renderTransTable();
+  }
+  if (v === "sim") drawDiagram(activeStateName);
+}
+
+/* ─── LIBRARY ────────────────────────────────────────────────────────────────── */
+function buildLibrary() {
+  var grid = document.getElementById("lib-grid");
+  grid.innerHTML = PRESETS.map(function(p) {
+    return '<div class="preset-card" onclick="loadPreset(\'' + p.id + '\')">' +
+      '<div class="pc-tag">' + p.tag + '</div>' +
+      '<div class="pc-name">' + p.name + '</div>' +
+      '<div class="pc-desc">' + p.desc + '</div>' +
+      '<div class="pc-footer">' +
+        '<span class="pc-meta">' + p.states.length + ' states &middot; ' + p.transitions.length + ' transitions</span>' +
+        '<button class="btn accent sm">Load &rarr;</button>' +
+      '</div></div>';
+  }).join("");
+}
+
+function loadPreset(id) {
+  var p = PRESETS.find(function(x){return x.id === id;});
+  if (!p) return;
+  states      = p.states.map(function(s){return Object.assign({},s);});
+  transitions = p.transitions.map(function(t){return Object.assign({},t);});
+  document.getElementById("gamma").value = p.gamma;
+  document.getElementById("istr").value  = p.sample;
+  currentName = p.name;
+  document.getElementById("pda-name-label").textContent = p.name;
+  filterState = null;
+  resetSim(false);
+  renderChips(); renderTransTable(); drawDiagram();
+  gotoView("sim");
+  notify("Loaded: " + p.name);
+}
+
+/* ─── GAMMA ──────────────────────────────────────────────────────────────────── */
+function getGamma() {
+  return document.getElementById("gamma").value.split(",").map(function(s){return s.trim();}).filter(Boolean);
+}
+function validateSym(sym, what) {
+  if (sym === EPS) return true;
+  var g = getGamma();
+  for (var i = 0; i < sym.length; i++) {
+    if (g.indexOf(sym[i]) === -1) { notify(what + " symbol '" + sym[i] + "' not in Gamma"); return false; }
+  }
+  return true;
+}
+
+/* ─── STATES ─────────────────────────────────────────────────────────────────── */
+function addState() {
+  var nm = document.getElementById("sname").value.trim();
+  if (!nm) return notify("Enter a state name");
+  if (states.find(function(s){return s.name===nm;})) return notify("State already exists");
+  var isStart = document.getElementById("is-start").checked;
+  var isFinal = document.getElementById("is-final").checked;
+  if (isStart) states.forEach(function(s){s.isStart=false;});
+  states.push({name:nm, isStart:isStart, isFinal:isFinal});
+  document.getElementById("sname").value = "";
+  document.getElementById("is-start").checked = false;
+  document.getElementById("is-final").checked = false;
+  renderChips(); drawDiagram();
+}
+function removeState(nm) {
+  states = states.filter(function(s){return s.name!==nm;});
+  transitions = transitions.filter(function(t){return t.from!==nm && t.to!==nm;});
+  renderChips(); renderTransTable(); drawDiagram();
+}
+function renderChips() {
+  document.getElementById("schips").innerHTML = states.map(function(s) {
+    return '<div class="chip ' + (s.isStart?"start":"") + '">' +
+      (s.isStart?"&rarr;":"") + s.name + (s.isFinal?"*":"") +
+      '<span class="cx" onclick="removeState(\'' + s.name + '\')">&times;</span></div>';
+  }).join("");
+}
+
+/* ─── TRANSITION TABLE ───────────────────────────────────────────────────────── */
+function renderTransTable() {
+  var tbody = document.getElementById("ttbody");
+  document.getElementById("tc").textContent = transitions.length;
+  tbody.innerHTML = transitions.map(function(t, i) {
+    return '<tr id="trow-' + i + '">' +
+      '<td><input value="' + t.from  + '" onchange="transitions['+i+'].from=this.value;schedDraw()" placeholder="q0"/></td>' +
+      '<td><input value="' + t.input + '" onchange="transitions['+i+'].input=this.value||\'e\'" placeholder="a/e"/></td>' +
+      '<td><input value="' + t.pop   + '" onchange="transitions['+i+'].pop=this.value||\'e\'" placeholder="Z/e"/></td>' +
+      '<td><input value="' + t.push  + '" onchange="transitions['+i+'].push=this.value||\'e\'" placeholder="AZ/e"/></td>' +
+      '<td><input value="' + t.to    + '" onchange="transitions['+i+'].to=this.value;schedDraw()" placeholder="q1"/></td>' +
+      '<td class="dcol" onclick="removeTrans(' + i + ')">&times;</td></tr>';
+  }).join("");
+}
+var _dt = null;
+function schedDraw() { clearTimeout(_dt); _dt = setTimeout(function(){drawDiagram();}, 300); }
+function addTransRow() {
+  transitions.push({from:"",input:EPS,pop:EPS,push:EPS,to:""});
+  renderTransTable();
+  document.getElementById("tc").textContent = transitions.length;
+  var rows = document.querySelectorAll("#ttbody tr");
+  if (rows.length) rows[rows.length-1].querySelector("input").focus();
+}
+function removeTrans(i) {
+  transitions.splice(i,1);
+  renderTransTable();
+  document.getElementById("tc").textContent = transitions.length;
+  drawDiagram();
+}
+
+/* ─── BULK IMPORT ────────────────────────────────────────────────────────────── */
+function switchBulk(mode, el) {
+  bulkMode = mode;
+  document.querySelectorAll(".itab").forEach(function(e){e.classList.remove("active");});
+  el.classList.add("active");
+  document.getElementById("bi-jflap").style.display = mode==="jflap" ? "block" : "none";
+  document.getElementById("bi-crock").style.display = mode==="crock"  ? "block" : "none";
+}
+function bulkImport() {
+  var raw = bulkMode==="jflap"
+    ? document.getElementById("bk-jflap").value
+    : document.getElementById("bk-crock").value;
+  var added=0, errors=0;
+  raw.split("\n").forEach(function(line) {
+    line = line.trim(); if (!line) return;
+    var from,inp,pop,push,to;
+    if (bulkMode==="jflap") {
+      var p = line.split(",").map(function(s){return s.trim();});
+      if (p.length<5) { errors++; return; }
+      from=p[0]; inp=p[1]; pop=p[2]; push=p[3]; to=p[4];
+    } else {
+      var m = line.match(/^(.+?),\s*(.+?),\s*(.+?)\s*->\s*(.+?),\s*(.+)$/);
+      if (!m) { errors++; return; }
+      from=m[1]; inp=m[2]; pop=m[3]; to=m[4]; push=m[5];
+    }
+    from=from.trim(); inp=(inp||"").trim()||EPS;
+    pop=(pop||"").trim()||EPS; push=(push||"").trim()||EPS; to=to.trim();
+    if (!states.find(function(s){return s.name===from;})) states.push({name:from,isStart:states.length===0,isFinal:false});
+    if (!states.find(function(s){return s.name===to;}))   states.push({name:to,isStart:false,isFinal:false});
+    transitions.push({from:from,input:inp,pop:pop,push:push,to:to});
+    added++;
+  });
+  renderChips(); renderTransTable(); drawDiagram();
+  notify(errors ? "Imported "+added+", "+errors+" errors" : "Imported "+added+" transitions");
+}
+
+/* ─── BUILD & RUN ────────────────────────────────────────────────────────────── */
+function buildAndRun() {
+  for (var i=0;i<transitions.length;i++) {
+    if (!validateSym(transitions[i].pop,"Pop")||!validateSym(transitions[i].push,"Push")) return;
+  }
+  currentName = "Custom PDA";
+  document.getElementById("pda-name-label").textContent = "Custom PDA";
+  filterState = null;
+  resetSim(false);
+  gotoView("sim");
+  setTimeout(function(){runSim();}, 80);
+}
+function clearAll() {
+  states=[]; transitions=[]; filterState=null;
+  renderChips(); renderTransTable(); drawDiagram(); resetSim();
+}
+
+/* ─── IMPORT / EXPORT ────────────────────────────────────────────────────────── */
+function downloadPDA() {
+  var data = {name:currentName, gamma:getGamma(), states:states, transitions:transitions};
+  var blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (currentName.replace(/[^a-z0-9]/gi,"_")||"pda") + ".json";
+  a.click();
+  notify("Exported " + a.download);
+}
+function importPDA(evt) {
+  var file = evt.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      states      = data.states      || [];
+      transitions = data.transitions || [];
+      document.getElementById("gamma").value = (data.gamma||["Z"]).join(",");
+      currentName = data.name || "Imported PDA";
+      filterState = null;
+      resetSim(false);
+      renderChips(); renderTransTable(); drawDiagram();
+      gotoView("sim");
+      notify("Imported: " + currentName);
+    } catch(err) { notify("Error: invalid JSON file"); }
+  };
+  reader.readAsText(file);
+  evt.target.value = "";
+}
+
+/* ─── SIMULATION ENGINE ──────────────────────────────────────────────────────── */
+function computePath(inputStr) {
+  var s0 = states.find(function(s){return s.isStart;});
+  if (!s0) return null;
+  var queue = [{state:s0.name,head:0,stack:["Z"],path:[]}];
+  var seen = {};
+  while (queue.length) {
+    var item = queue.shift();
+    var state=item.state, head=item.head, stack=item.stack, path=item.path;
+    var key = state+"|"+head+"|"+stack.join(",");
+    if (seen[key]) continue; seen[key]=true;
+    var st = states.find(function(s){return s.name===state;});
+    if (st && st.isFinal && head===inputStr.length) return path;
+    var cur = head<inputStr.length ? inputStr[head] : EPS;
+    var top = stack.length ? stack[stack.length-1] : EPS;
+    transitions
+      .filter(function(t){return t.from===state&&(t.input===EPS||t.input===cur)&&(t.pop===EPS||t.pop===top);})
+      .forEach(function(t) {
+        var ns=stack.slice(), nh=head;
+        if(t.pop!==EPS) ns.pop();
+        if(t.input!==EPS) nh++;
+        if(t.push!==EPS) ns.push.apply(ns, t.push.split("").reverse());
+        queue.push({state:t.to,head:nh,stack:ns,path:path.concat([{
+          fromState:state,toState:t.to,readSym:t.input,popSym:t.pop,
+          pushSym:t.push,head:nh,stackBefore:stack.slice(),stackAfter:ns.slice()
+        }])});
+      });
+  }
+  return null;
+}
+
+function computeRejectPath(inputStr) {
+  var s0 = states.find(function(s){return s.isStart;});
+  if (!s0) return [];
+  var state=s0.name, head=0, stack=["Z"], path=[];
+  for (var i=0;i<200;i++) {
+    var cur = head<inputStr.length ? inputStr[head] : EPS;
+    var top = stack.length ? stack[stack.length-1] : EPS;
+    var app = transitions.filter(function(t){
+      return t.from===state&&(t.input===EPS||t.input===cur)&&(t.pop===EPS||t.pop===top);
+    });
+    if (!app.length) break;
+    var t=app[0]; var ns=stack.slice(), nh=head;
+    if(t.pop!==EPS) ns.pop();
+    if(t.input!==EPS) nh++;
+    if(t.push!==EPS) ns.push.apply(ns, t.push.split("").reverse());
+    path.push({fromState:state,toState:t.to,readSym:t.input,popSym:t.pop,
+               pushSym:t.push,head:nh,stackBefore:stack.slice(),stackAfter:ns.slice()});
+    stack=ns; head=nh; state=t.to;
+    var st2 = states.find(function(s){return s.name===state;});
+    if (st2&&st2.isFinal&&head===inputStr.length) break;
+  }
+  return path;
+}
+
+function computeAllPaths(inputStr, maxD) {
+  maxD = maxD||14;
+  var s0 = states.find(function(s){return s.isStart;});
+  if (!s0) return [];
+  treeNodes=[]; treeEdges=[];
+  var results=[];
+  function dfs(state,head,stack,path,pid) {
+    var nid = treeNodes.length;
+    treeNodes.push({id:nid,state:state,accepted:false,dead:false,parent:pid});
+    if (pid!==null) treeEdges.push({from:pid,to:nid,step:path[path.length-1]});
+    if (path.length>maxD) { treeNodes[nid].dead=true; return; }
+    var st = states.find(function(s){return s.name===state;});
+    if (st&&st.isFinal&&head===inputStr.length) { treeNodes[nid].accepted=true; results.push(path.slice()); return; }
+    var cur = head<inputStr.length ? inputStr[head] : EPS;
+    var top = stack.length ? stack[stack.length-1] : EPS;
+    var app = transitions.filter(function(t){
+      return t.from===state&&(t.input===EPS||t.input===cur)&&(t.pop===EPS||t.pop===top);
+    });
+    if (!app.length) { treeNodes[nid].dead=true; return; }
+    app.forEach(function(t) {
+      var ns=stack.slice(), nh=head;
+      if(t.pop!==EPS) ns.pop();
+      if(t.input!==EPS) nh++;
+      if(t.push!==EPS) ns.push.apply(ns,t.push.split("").reverse());
+      dfs(t.to,nh,ns,path.concat([{fromState:state,toState:t.to,readSym:t.input,
+        popSym:t.pop,pushSym:t.push,head:nh,stackBefore:stack.slice(),stackAfter:ns.slice()}]),nid);
+    });
+  }
+  dfs(s0.name,0,["Z"],[],null);
+  return results;
+}
+
+/* ─── SIM CONTROL ────────────────────────────────────────────────────────────── */
+function initSim() {
+  resetSim(false);
+  var istr = document.getElementById("istr").value;
+  var s0 = states.find(function(s){return s.isStart;});
+  if (!s0) return notify("No start state defined");
+  simHistory = [];
+  var nd = document.getElementById("nd-mode-sim").checked || document.getElementById("nd-mode").checked;
+  if (nd) {
+    var paths = computeAllPaths(istr);
+    accepted  = paths.length > 0;
+    simSteps  = accepted ? paths[0] : computeRejectPath(istr);
+    drawTree();
+    document.getElementById("tree-strip").classList.add("show");
+  } else {
+    var p = computePath(istr);
+    accepted = p!==null;
+    simSteps = accepted ? p : computeRejectPath(istr);
+    document.getElementById("tree-strip").classList.remove("show");
+  }
+  stepIdx = 0;
+  renderTape(istr,-1); renderStack(["Z"]);
+  setPill("idle");
+  logInfo("Simulation initialised. Input: \""+istr+"\" | Start: "+s0.name+" | "+(accepted?"Accepting path found.":"No accepting path."));
+  document.getElementById("step-back-btn").disabled = true;
+  activeStateName = s0.name;
+  drawDiagram(s0.name);
+}
+
+function runSim() {
+  if (running) { pauseSim(); return; }
+  if (!simSteps.length) initSim();
+  running = true;
+  document.getElementById("run-btn").textContent = "Pause";
+  var spd = 1900 - parseInt(document.getElementById("speed").value);
+  function tick() {
+    if (stepIdx>=simSteps.length) {
+      running=false; document.getElementById("run-btn").textContent="Run \u25B6"; finalPill(); return;
+    }
+    doStep(); simTimer=setTimeout(tick,spd);
+  }
+  tick();
+}
+function pauseSim() { clearTimeout(simTimer); running=false; document.getElementById("run-btn").textContent="Run \u25B6"; }
+function stepFwd() {
+  if (running) return;
+  if (!simSteps.length) initSim();
+  if (stepIdx>=simSteps.length) { finalPill(); return; }
+  doStep();
+}
+function stepBack() {
+  if (!simHistory.length) return;
+  var prev = simHistory.pop();
+  stepIdx = prev.stepIdx;
+  renderTape(document.getElementById("istr").value, prev.head);
+  renderStack(prev.stack);
+  activeStateName = prev.state;
+  drawDiagram(prev.state);
+  document.getElementById("step-back-btn").disabled = simHistory.length===0;
+  setPill("running");
+  logEntry("Stepped back to state " + prev.state + ".", "info");
+}
+function doStep() {
+  var step = simSteps[stepIdx];
+  var istr = document.getElementById("istr").value;
+  simHistory.push({stepIdx:stepIdx, head:step.head-(step.readSym!==EPS?1:0), stack:step.stackBefore.slice(), state:step.fromState});
+  renderTape(istr, step.head-(step.readSym!==EPS?1:0));
+  renderStack(step.stackAfter);
+  activeStateName = step.toState;
+  drawDiagram(step.toState, step);
+  hlTransRow(step);
+  appendLog(step);
+  stepIdx++;
+  document.getElementById("step-back-btn").disabled = false;
+  if (stepIdx>=simSteps.length) {
+    finalPill();
+    if (running) { running=false; document.getElementById("run-btn").textContent="Run \u25B6"; }
+  }
+}
+function resetSim(full) {
+  if (full===undefined) full=true;
+  clearTimeout(simTimer);
+  running=false; simSteps=[]; stepIdx=0; accepted=false; simHistory=[];
+  document.getElementById("run-btn").textContent = "Run \u25B6";
+  document.getElementById("step-back-btn").disabled = true;
+  setPill("idle");
+  if (full) {
+    renderTape(document.getElementById("istr").value,-1);
+    renderStack(["Z"]);
+    activeStateName = null;
+    var s0 = states.find(function(s){return s.isStart;});
+    if (s0) activeStateName = s0.name;
+    document.querySelectorAll("#ttbody tr").forEach(function(r){r.classList.remove("t-active");});
+    drawDiagram(activeStateName);
+    document.getElementById("tree-strip").classList.remove("show");
+    logInfo("Simulation reset.");
+  }
+}
+function finalPill() {
+  setPill(accepted?"accept":"reject");
+  logEntry(accepted ? "ACCEPTED — reached accept state with input consumed." : "REJECTED — no accepting configuration reached.", accepted?"accept":"reject");
+}
+
+/* ─── RENDER HELPERS ─────────────────────────────────────────────────────────── */
+function renderTape(str, headPos) {
+  var el = document.getElementById("tape-row");
+  if (!str) { el.innerHTML='<span style="font-family:var(--mono);font-size:11px;color:var(--muted)">empty input</span>'; return; }
+  el.innerHTML = str.split("").map(function(ch,i) {
+    var cls = i<headPos?"t-past":i===headPos?"t-cur":"t-future";
+    return '<div class="tc '+cls+'">'+ch+'<span class="tidx">'+i+'</span></div>';
+  }).join("");
+}
+function renderStack(stk) {
+  var el = document.getElementById("stack-inner");
+  document.getElementById("sdepth").textContent = stk ? stk.length : 0;
+  if (!stk||!stk.length) { el.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--border2);margin:auto">empty</div>'; return; }
+  el.innerHTML = stk.map(function(sym,i) {
+    var isTop=i===stk.length-1, isBot=i===0;
+    return '<div class="sc '+(isTop?"stk-top":"")+" "+(isBot?"stk-bot":"")+'">'+sym+'</div>';
+  }).join("");
+}
+function setPill(r) {
+  var labels={accept:"ACCEPTED",reject:"REJECTED",idle:"IDLE",running:"RUNNING"};
+  document.getElementById("rpill").innerHTML = '<span class="pill '+r+'">'+labels[r]+'</span>';
+}
+function hlTransRow(step) {
+  document.querySelectorAll("#ttbody tr").forEach(function(r){r.classList.remove("t-active");});
+  var idx = transitions.findIndex(function(t){
+    return t.from===step.fromState&&t.to===step.toState&&t.input===step.readSym&&t.pop===step.popSym&&t.push===step.pushSym;
+  });
+  if (idx>=0) {
+    var row = document.getElementById("trow-"+idx);
+    if (row) row.classList.add("t-active");
+  }
+}
+
+/* ─── LIVE EXECUTION LOG ─────────────────────────────────────────────────────── */
+function appendLog(step) {
+  var istr = document.getElementById("istr").value;
+  var remaining = istr.slice(step.head);
+  var cls = "cur", msg = "";
+  if (step.readSym !== EPS) msg += "Read input '" + step.readSym + "'.  ";
+  else msg += "Epsilon-transition (no input consumed).  ";
+  msg += "State: " + step.fromState + " -> " + step.toState + ".  ";
+  if (step.popSym !== EPS) { cls="pop"; msg += "Popped '" + step.popSym + "' from stack.  "; }
+  if (step.pushSym !== EPS) { cls="push"; msg += "Pushed '" + step.pushSym + "' onto stack.  "; }
+  if (step.popSym===EPS && step.pushSym===EPS) cls="cur";
+  msg += "Stack: [" + step.stackAfter.join(", ") + "].";
+  if (remaining) msg += "  Remaining: \"" + remaining + "\".";
+  logEntry(msg, cls);
+}
+function logEntry(msg, cls) {
+  var lb = document.getElementById("log-body");
+  var d = document.createElement("div");
+  d.className = "log-entry " + (cls||"");
+  d.textContent = msg;
+  lb.appendChild(d);
+  lb.scrollTop = lb.scrollHeight;
+}
+function logInfo(msg) { logEntry(msg,"info"); }
+function clearLog() { document.getElementById("log-body").innerHTML=""; }
+
+/* ─── SVG DIAGRAM ────────────────────────────────────────────────────────────── */
+function nsvg(tag) { return document.createElementNS("http://www.w3.org/2000/svg",tag); }
+
+function drawDiagram(activeState, activeStep) {
+  var svg = document.getElementById("state-svg");
+  svg.innerHTML = "";
+  if (!states.length) return;
+  var wrap = document.getElementById("svg-wrap");
+  
+  // 1. MASSIVELY INCREASED CANVAS AND BUBBLE SIZES
+  var r = 32, n = states.length;
+  var W = Math.max(wrap.clientWidth - 10, n * 180); 
+  var H = Math.max(wrap.clientHeight - 10, 260);
+  
+  svg.setAttribute("viewBox","0 0 "+W+" "+H);
+  svg.setAttribute("width",W); svg.setAttribute("height",H);
+  
+  var sp = Math.min((W-80)/Math.max(n,1), 200);
+  var sx = (W-sp*(n-1))/2, cy = H/2 + 20;
+  var pos = {};
+  states.forEach(function(s,i){pos[s.name]={x:sx+i*sp,y:cy};});
+
+  var defs=nsvg("defs");
+  [{id:"arr",clr:"#475569"},{id:"arr-act",clr:"#ffa502"},{id:"arr-filt",clr:"#1e90ff"}].forEach(function(d) {
+    var mk=nsvg("marker");
+    mk.setAttribute("id",d.id);mk.setAttribute("markerWidth","10");mk.setAttribute("markerHeight","10");
+    mk.setAttribute("refX","8");mk.setAttribute("refY","4");mk.setAttribute("orient","auto");
+    var mp=nsvg("path");mp.setAttribute("d","M0,0 L0,8 L9,4 z");mp.setAttribute("fill",d.clr);
+    mk.appendChild(mp);defs.appendChild(mk);
+  });
+  svg.appendChild(defs);
+
+  // 2. GROUP TRANSITIONS TO PREVENT TEXT OVERLAP
+  var grouped = {};
+  transitions.forEach(function(t) {
+    var k = t.from + "->" + t.to;
+    if (!grouped[k]) grouped[k] = { from: t.from, to: t.to, trans: [] };
+    grouped[k].trans.push(t);
+  });
+
+  var drawn={};
+  Object.values(grouped).forEach(function(g) {
+    var fp = pos[g.from], tp = pos[g.to]; 
+    if (!fp || !tp) return;
+
+    var isActGroup = false;
+    if (activeStep) {
+      isActGroup = g.trans.some(function(t) {
+        return t.from===activeStep.fromState && t.to===activeStep.toState &&
+               t.input===activeStep.readSym && t.pop===activeStep.popSym && t.push===activeStep.pushSym;
+      });
+    }
+    
+    var clr = isActGroup ? "#ffa502" : "#475569";
+    var aid = isActGroup ? "arr-act" : "arr";
+    var textYOffset = - (g.trans.length - 1) * 12; 
+
+    if (g.from === g.to) {
+      // 3. WIDER SELF-LOOPS
+      var lx = fp.x, ty = fp.y - r - 24; 
+      var p = nsvg("path");
+      p.setAttribute("d","M"+(lx-18)+","+(fp.y-r)+" C"+(lx-50)+","+(ty-25)+" "+(lx+50)+","+(ty-25)+" "+(lx+18)+","+(fp.y-r));
+      p.setAttribute("fill","none");p.setAttribute("stroke",clr);p.setAttribute("stroke-width",isActGroup?"3":"2");
+      p.setAttribute("marker-end","url(#"+aid+")");svg.appendChild(p);
+      
+      var tx = nsvg("text");
+      tx.setAttribute("x", lx);
+      tx.setAttribute("y", ty - 12 + textYOffset); 
+      tx.setAttribute("text-anchor","middle"); tx.setAttribute("font-size","13"); // BIGGER FONT
+      tx.setAttribute("font-family","IBM Plex Mono");
+      
+      g.trans.forEach(function(t, i) {
+         var tspan = nsvg("tspan");
+         tspan.setAttribute("x", lx);
+         if (i > 0) tspan.setAttribute("dy", "15");
+         var lbl = t.input + "," + t.pop + "/" + t.push;
+         tspan.textContent = lbl;
+         var isActThis = activeStep && t.from===activeStep.fromState && t.to===activeStep.toState && t.input===activeStep.readSym && t.pop===activeStep.popSym && t.push===activeStep.pushSym;
+         tspan.setAttribute("fill", isActThis ? "#ffa502" : "#94a3b8");
+         tx.appendChild(tspan);
+      });
+      svg.appendChild(tx);
+      return;
+    }
+
+    var dx=tp.x-fp.x, dy=tp.y-fp.y, dist=Math.sqrt(dx*dx+dy*dy);
+    var ux=dx/dist, uy=dy/dist;
+    var x1=fp.x+ux*r, y1=fp.y+uy*r, x2=tp.x-ux*r, y2=tp.y-uy*r;
+    var key=[g.from, g.to].sort().join("|");
+    var bend=drawn[key]?35:0; drawn[key]=true; 
+    var mx=(x1+x2)/2-uy*bend, my=(y1+y2)/2+ux*bend;
+    
+    var path = nsvg("path");
+    path.setAttribute("d","M"+x1+","+y1+" Q"+mx+","+my+" "+x2+","+y2);
+    path.setAttribute("fill","none");path.setAttribute("stroke",clr);
+    path.setAttribute("stroke-width",isActGroup?"3":"2");
+    path.setAttribute("marker-end","url(#"+aid+")");svg.appendChild(path);
+    
+    var tx2 = nsvg("text");
+    tx2.setAttribute("x", mx);
+    tx2.setAttribute("y", my - 8 + textYOffset);  
+    tx2.setAttribute("text-anchor","middle"); tx2.setAttribute("font-size","13"); // BIGGER FONT
+    tx2.setAttribute("font-family","IBM Plex Mono");
+    
+    g.trans.forEach(function(t, i) {
+         var tspan = nsvg("tspan");
+         tspan.setAttribute("x", mx);
+         if (i > 0) tspan.setAttribute("dy", "15");
+         var lbl = t.input + "," + t.pop + "/" + t.push;
+         tspan.textContent = lbl;
+         var isActThis = activeStep && t.from===activeStep.fromState && t.to===activeStep.toState && t.input===activeStep.readSym && t.pop===activeStep.popSym && t.push===activeStep.pushSym;
+         tspan.setAttribute("fill", isActThis ? "#ffa502" : "#94a3b8");
+         tx2.appendChild(tspan);
+    });
+    svg.appendChild(tx2);
+  });
+
+  states.forEach(function(s) {
+    var pos2=pos[s.name], x=pos2.x, y=pos2.y;
+    var isAct=s.name===activeState, isFilt=s.name===filterState;
+    if (s.isStart) {
+      var ln=nsvg("line");
+      ln.setAttribute("x1",x-r-24);ln.setAttribute("y1",y);
+      ln.setAttribute("x2",x-r-4);ln.setAttribute("y2",y);
+      ln.setAttribute("stroke","#1e90ff");ln.setAttribute("stroke-width","2");
+      ln.setAttribute("marker-end","url(#arr-filt)");svg.appendChild(ln);
+    }
+    var g=nsvg("g"); g.style.cursor="pointer";
+    g.addEventListener("click",function() {
+      filterState = filterState===s.name ? null : s.name;
+      renderTransTable(); drawDiagram(activeState,activeStep);
+    });
+    var c=nsvg("circle");
+    c.setAttribute("cx",x);c.setAttribute("cy",y);c.setAttribute("r",r);
+    c.setAttribute("fill",isAct?"rgba(255,165,2,.18)":isFilt?"rgba(30,144,255,.12)":"#1e293b");
+    c.setAttribute("stroke",isAct?"#ffa502":isFilt?"#1e90ff":"#475569");
+    c.setAttribute("stroke-width",isAct?"3":"2");g.appendChild(c);
+    if (s.isFinal) {
+      var c2=nsvg("circle");c2.setAttribute("cx",x);c2.setAttribute("cy",y);c2.setAttribute("r",r-6);
+      c2.setAttribute("fill","none");c2.setAttribute("stroke",isAct?"#ffa502":"#475569");
+      c2.setAttribute("stroke-width","1.5");g.appendChild(c2);
+    }
+    var tx3=nsvg("text");tx3.setAttribute("x",x);tx3.setAttribute("y",y);
+    tx3.setAttribute("text-anchor","middle");tx3.setAttribute("dominant-baseline","central");
+    tx3.setAttribute("font-size","15");tx3.setAttribute("font-family","IBM Plex Mono");
+    tx3.setAttribute("font-weight","700");tx3.setAttribute("fill",isAct?"#ffa502":"#f1f5f9");
+    tx3.textContent=s.name;g.appendChild(tx3);svg.appendChild(g);
+  });
+}
+/* ─── COMPUTATION TREE ───────────────────────────────────────────────────────── */
+function drawTree() {
+  var svg=document.getElementById("tree-svg"); svg.innerHTML="";
+  if (!treeNodes.length) return;
+  var levels={}; treeNodes.forEach(function(n){levels[n.id]=0;});
+  treeNodes.forEach(function(n){if(n.parent!==null)levels[n.id]=levels[n.parent]+1;});
+  var maxL=Math.max.apply(null,Object.values(levels));
+  var lCount={}; treeNodes.forEach(function(n){lCount[levels[n.id]]=(lCount[levels[n.id]]||0)+1;});
+  var lIdx={}, nodePos={};
+  var W=Math.max(900,treeNodes.length*42), H=(maxL+1)*55+30;
+  svg.setAttribute("viewBox","0 0 "+W+" "+H);svg.setAttribute("height",H);svg.style.width=W+"px";
+  treeNodes.forEach(function(n){
+    var lv=levels[n.id]; lIdx[lv]=lIdx[lv]||0;
+    nodePos[n.id]={x:((lIdx[lv]+.5)/lCount[lv])*W,y:lv*50+25}; lIdx[lv]++;
+  });
+  treeEdges.forEach(function(e){
+    var f=nodePos[e.from],t=nodePos[e.to]; if(!f||!t) return;
+    var line=nsvg("line");
+    line.setAttribute("x1",f.x);line.setAttribute("y1",f.y);
+    line.setAttribute("x2",t.x);line.setAttribute("y2",t.y);
+    line.setAttribute("stroke","#334155");line.setAttribute("stroke-width","1");svg.appendChild(line);
+    if (e.step) {
+      var lbl=nsvg("text");lbl.setAttribute("x",(f.x+t.x)/2+3);lbl.setAttribute("y",(f.y+t.y)/2);
+      lbl.setAttribute("font-size","7");lbl.setAttribute("font-family","IBM Plex Mono");lbl.setAttribute("fill","#94a3b8");
+      lbl.textContent=e.step.readSym+","+e.step.popSym+"/"+e.step.pushSym;svg.appendChild(lbl);
+    }
+  });
+  treeNodes.forEach(function(n){
+    var pos2=nodePos[n.id], x=pos2.x, y=pos2.y;
+    var clr=n.accepted?"#2ed573":n.dead?"#ff4757":"#475569";
+    var c=nsvg("circle");c.setAttribute("cx",x);c.setAttribute("cy",y);c.setAttribute("r",11);
+    c.setAttribute("fill","rgba(0,0,0,0)");c.setAttribute("stroke",clr);c.setAttribute("stroke-width","1.5");svg.appendChild(c);
+    var tx=nsvg("text");tx.setAttribute("x",x);tx.setAttribute("y",y);
+    tx.setAttribute("text-anchor","middle");tx.setAttribute("dominant-baseline","central");
+    tx.setAttribute("font-size","7");tx.setAttribute("font-family","IBM Plex Mono");tx.setAttribute("fill",clr);
+    tx.textContent=n.state;svg.appendChild(tx);
+  });
+}
+
+/* ─── NOTIFY ─────────────────────────────────────────────────────────────────── */
+function notify(msg) {
+  var el=document.getElementById("notif");
+  el.textContent=msg; el.classList.add("show");
+  setTimeout(function(){el.classList.remove("show");},2500);
+}
+
+/* ─── INIT ───────────────────────────────────────────────────────────────────── */
+buildLibrary();
+renderTransTable();
+drawDiagram();
+window.addEventListener("resize", function(){drawDiagram(activeStateName);});
+</script>
+</body>
+</html>
