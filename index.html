@@ -144,8 +144,8 @@ label{font-size:10px;font-family:var(--mono);color:var(--muted);display:block;ma
 .lib-header{margin-bottom:18px}
 .lib-header h2{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
 .lib-header p{font-size:11px;color:var(--muted);font-family:var(--mono)}
-.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
-.preset-card{background:var(--bg2);border:1px solid var(--border);padding:16px 18px;cursor:pointer;transition:border-color .2s,transform .2s,box-shadow .2s;border-radius:6px}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
+.preset-card{background:var(--bg2);border:1px solid var(--border);padding:20px 24px;cursor:pointer;transition:border-color .2s,transform .2s,box-shadow .2s;border-radius:6px}
 .preset-card:hover{border-color:var(--neon-y);transform:translateY(-4px);box-shadow:0 12px 24px rgba(0,0,0,0.4)}
 .pc-tag{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:5px}
 .pc-name{font-family:var(--mono);font-size:13px;color:var(--neon-y);margin-bottom:6px;font-weight:600}
@@ -267,11 +267,7 @@ text[fill="#ffa502"]{filter:drop-shadow(0 0 4px rgba(255,165,2,0.5))}
 <header>
   <h1>PUSHDOWN AUTOMATA</h1>
   <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">Interactive Simulator</span>
-  <div class="hbtns">
-    <button class="btn sm" onclick="downloadPDA()">&#8595; Export JSON</button>
-    <button class="btn sm" onclick="document.getElementById('upload-input').click()">&#8593; Import JSON</button>
-    <input type="file" id="upload-input" accept=".json" style="display:none" onchange="importPDA(event)">
-  </div>
+
 </header>
 
 <!-- TAB BAR: Theory -> Library -> Simulator -> Custom PDA -->
@@ -561,7 +557,7 @@ text[fill="#ffa502"]{filter:drop-shadow(0 0 4px rgba(255,165,2,0.5))}
       <button class="t-add" onclick="addTransRow()">+ add row</button>
     </div>
     <div style="font-family:var(--mono);font-size:9px;color:var(--muted);line-height:1.7">
-      Use <span style="color:var(--neon-g)">e</span> for epsilon in any field.
+      Use <span style="color:var(--neon-g)">ε</span> for epsilon in any field.
       Push accepts multi-char strings (e.g. <span style="color:var(--neon-g)">AZ</span>). All symbols must appear in &Gamma;.
     </div>
   </div>
@@ -573,24 +569,111 @@ text[fill="#ffa502"]{filter:drop-shadow(0 0 4px rgba(255,165,2,0.5))}
 'use strict';
 
 /* ─── EPSILON TOKEN ─────────────────────────────────────────────────────────── */
-var EPS = "e";
+var EPS = "ε";
 
 /* ─── PRESETS ────────────────────────────────────────────────────────────────── */
 var PRESETS = [
   {
-    id: "anbn", tag: "Classic CFL", name: "{a^n b^n | n >= 1}",
-    desc: "Push A for every a, pop A for every b. The canonical context-free language.",
+    id: "anbn", tag: "GeeksforGeeks", name: "{aⁿbⁿ | n ≥ 1}",
+    desc: "Standard PDA. Pushes A for every a, pops A for every b.",
     gamma: "Z,A", sample: "aaabbb",
     states: [
-      {name:"q0",isStart:true, isFinal:false},
-      {name:"q1",isStart:false,isFinal:false},
-      {name:"q2",isStart:false,isFinal:true}
+      {name:"q0",isStart:true, isFinal:false}, {name:"q1",isStart:false,isFinal:false}, {name:"q2",isStart:false,isFinal:true}
     ],
     transitions: [
-      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q1"},
-      {from:"q1",input:"a",pop:"A",push:"AA",to:"q1"},
-      {from:"q1",input:"b",pop:"A",push:"e", to:"q2"},
-      {from:"q2",input:"b",pop:"A",push:"e", to:"q2"}
+      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q0"}, {from:"q0",input:"a",pop:"A",push:"AA",to:"q0"},
+      {from:"q0",input:"b",pop:"A",push:"ε", to:"q1"}, {from:"q1",input:"b",pop:"A",push:"ε", to:"q1"},
+      {from:"q1",input:"ε",pop:"Z",push:"Z", to:"q2"}
+    ]
+  },
+  {
+    id: "amb2m", tag: "GeeksforGeeks", name: "{aᵐb²ᵐ | m ≥ 1}",
+    desc: "Pushes two A's for every 'a' read. Pops one A for every 'b' read.",
+    gamma: "Z,A", sample: "aabbbb",
+    states: [
+      {name:"q0",isStart:true, isFinal:false}, {name:"q1",isStart:false,isFinal:false}, {name:"q2",isStart:false,isFinal:true}
+    ],
+    transitions: [
+      {from:"q0",input:"a",pop:"Z",push:"AAZ",to:"q0"}, {from:"q0",input:"a",pop:"A",push:"AAA",to:"q0"},
+      {from:"q0",input:"b",pop:"A",push:"ε", to:"q1"}, {from:"q1",input:"b",pop:"A",push:"ε", to:"q1"},
+      {from:"q1",input:"ε",pop:"Z",push:"Z", to:"q2"}
+    ]
+  },
+  {
+    id: "amb2m1", tag: "GeeksforGeeks", name: "{aᵐb²ᵐ⁺¹ | m ≥ 1}",
+    desc: "Pushes two A's for every 'a'. Pops A for 'b'. Accepts upon reading the final 'b' with an empty stack marker.",
+    gamma: "Z,A", sample: "aabbbbb",
+    states: [
+      {name:"q0",isStart:true, isFinal:false}, {name:"q1",isStart:false,isFinal:false}, {name:"q2",isStart:false,isFinal:true}
+    ],
+    transitions: [
+      {from:"q0",input:"a",pop:"Z",push:"AAZ",to:"q0"}, {from:"q0",input:"a",pop:"A",push:"AAA",to:"q0"},
+      {from:"q0",input:"b",pop:"A",push:"ε", to:"q1"}, {from:"q1",input:"b",pop:"A",push:"ε", to:"q1"},
+      {from:"q1",input:"b",pop:"Z",push:"Z", to:"q2"}
+    ]
+  },
+  {
+    id: "anbmcnm", tag: "GeeksforGeeks", name: "{aᵐbⁿcᵐ⁺ⁿ | m,n ≥ 1}",
+    desc: "Pushes A for every 'a' and 'b'. Pops A for every 'c'.",
+    gamma: "Z,A", sample: "aabbbccccc",
+    states: [
+      {name:"q0",isStart:true, isFinal:false}, {name:"q1",isStart:false,isFinal:false}, 
+      {name:"q2",isStart:false,isFinal:false}, {name:"q3",isStart:false,isFinal:true}
+    ],
+    transitions: [
+      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q0"}, {from:"q0",input:"a",pop:"A",push:"AA",to:"q0"},
+      {from:"q0",input:"b",pop:"A",push:"AA",to:"q1"}, {from:"q1",input:"b",pop:"A",push:"AA",to:"q1"},
+      {from:"q1",input:"c",pop:"A",push:"ε", to:"q2"}, {from:"q2",input:"c",pop:"A",push:"ε", to:"q2"},
+      {from:"q2",input:"ε",pop:"Z",push:"Z", to:"q3"}
+    ]
+  },
+  {
+    id: "anbncm", tag: "GeeksforGeeks", name: "{aⁿbⁿcᵐ | n,m ≥ 1}",
+    desc: "Matches a's and b's. Then reads any number of c's without modifying the stack.",
+    gamma: "Z,A", sample: "aabbccc",
+    states: [
+      {name:"q0",isStart:true, isFinal:false}, {name:"q1",isStart:false,isFinal:false}, 
+      {name:"q2",isStart:false,isFinal:false}, {name:"q3",isStart:false,isFinal:true}
+    ],
+    transitions: [
+      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q0"}, {from:"q0",input:"a",pop:"A",push:"AA",to:"q0"},
+      {from:"q0",input:"b",pop:"A",push:"ε", to:"q1"}, {from:"q1",input:"b",pop:"A",push:"ε", to:"q1"},
+      {from:"q1",input:"c",pop:"Z",push:"Z", to:"q2"}, {from:"q2",input:"c",pop:"Z",push:"Z", to:"q2"},
+      {from:"q2",input:"ε",pop:"Z",push:"Z", to:"q3"}
+    ]
+  },
+  {
+    id: "anbmcn", tag: "GeeksforGeeks", name: "{aⁿbᵐcⁿ | n,m ≥ 1}",
+    desc: "Pushes A for 'a'. Ignores 'b' entirely. Pops A for 'c'.",
+    gamma: "Z,A", sample: "aaabbbaaa",
+    states: [
+      {name:"q0",isStart:true, isFinal:false}, {name:"q1",isStart:false,isFinal:false}, 
+      {name:"q2",isStart:false,isFinal:false}, {name:"q3",isStart:false,isFinal:true}
+    ],
+    transitions: [
+      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q0"}, {from:"q0",input:"a",pop:"A",push:"AA",to:"q0"},
+      {from:"q0",input:"b",pop:"A",push:"A", to:"q1"}, {from:"q1",input:"b",pop:"A",push:"A", to:"q1"},
+      {from:"q1",input:"c",pop:"A",push:"ε", to:"q2"}, {from:"q2",input:"c",pop:"A",push:"ε", to:"q2"},
+      {from:"q2",input:"ε",pop:"Z",push:"Z", to:"q3"}
+    ]
+  },
+  {
+    id: "allpalin", tag: "GeeksforGeeks", name: "All Length Palindromes over {a,b}",
+    desc: "Nondeterministically guesses the midpoint for both even and odd length palindromes.",
+    gamma: "Z,A,B", sample: "ababa",
+    states: [
+      {name:"q0",isStart:true, isFinal:false}, {name:"q1",isStart:false,isFinal:false}, {name:"q2",isStart:false,isFinal:true}
+    ],
+    transitions: [
+      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q0"}, {from:"q0",input:"b",pop:"Z",push:"BZ",to:"q0"},
+      {from:"q0",input:"a",pop:"A",push:"AA",to:"q0"}, {from:"q0",input:"a",pop:"B",push:"AB",to:"q0"},
+      {from:"q0",input:"b",pop:"A",push:"BA",to:"q0"}, {from:"q0",input:"b",pop:"B",push:"BB",to:"q0"},
+      {from:"q0",input:"ε",pop:"Z",push:"Z", to:"q1"}, {from:"q0",input:"ε",pop:"A",push:"A", to:"q1"}, {from:"q0",input:"ε",pop:"B",push:"B", to:"q1"},
+      {from:"q0",input:"a",pop:"Z",push:"Z", to:"q1"}, {from:"q0",input:"b",pop:"Z",push:"Z", to:"q1"},
+      {from:"q0",input:"a",pop:"A",push:"A", to:"q1"}, {from:"q0",input:"b",pop:"A",push:"A", to:"q1"},
+      {from:"q0",input:"a",pop:"B",push:"B", to:"q1"}, {from:"q0",input:"b",pop:"B",push:"B", to:"q1"},
+      {from:"q1",input:"a",pop:"A",push:"ε", to:"q1"}, {from:"q1",input:"b",pop:"B",push:"ε", to:"q1"},
+      {from:"q1",input:"ε",pop:"Z",push:"Z", to:"q2"}
     ]
   },
   {
@@ -598,93 +681,11 @@ var PRESETS = [
     desc: "Accepts strings of perfectly nested brackets. Core to expression parsing in compilers.",
     gamma: "Z,(", sample: "((()))",
     states: [
-      {name:"q0",isStart:true, isFinal:false},
-      {name:"q1",isStart:false,isFinal:true}
+      {name:"q0",isStart:true, isFinal:false}, {name:"q1",isStart:false,isFinal:true}
     ],
     transitions: [
-      {from:"q0",input:"(",pop:"Z",push:"(Z",to:"q0"},
-      {from:"q0",input:"(",pop:"(",push:"((",to:"q0"},
-      {from:"q0",input:")",pop:"(",push:"e", to:"q0"},
-      {from:"q0",input:"e",pop:"Z",push:"Z", to:"q1"}
-    ]
-  },
-  {
-    id: "palindrome", tag: "Midpoint Guess", name: "Even-length Palindromes over {a,b}",
-    desc: "Accepts even-length palindromes by guessing the midpoint nondeterministically.",
-    gamma: "Z,A,B", sample: "abba",
-    states: [
-      {name:"q0",isStart:true, isFinal:false},
-      {name:"q1",isStart:false,isFinal:false},
-      {name:"q2",isStart:false,isFinal:true}
-    ],
-    transitions: [
-      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q0"},{from:"q0",input:"b",pop:"Z",push:"BZ",to:"q0"},
-      {from:"q0",input:"a",pop:"A",push:"AA",to:"q0"},{from:"q0",input:"a",pop:"B",push:"AB",to:"q0"},
-      {from:"q0",input:"b",pop:"A",push:"BA",to:"q0"},{from:"q0",input:"b",pop:"B",push:"BB",to:"q0"},
-      {from:"q0",input:"e",pop:"Z",push:"Z", to:"q1"},{from:"q0",input:"e",pop:"A",push:"A", to:"q1"},
-      {from:"q0",input:"e",pop:"B",push:"B", to:"q1"},
-      {from:"q1",input:"a",pop:"A",push:"e", to:"q1"},{from:"q1",input:"b",pop:"B",push:"e", to:"q1"},
-      {from:"q1",input:"e",pop:"Z",push:"Z", to:"q2"}
-    ]
-  },
-  {
-    id: "eqab", tag: "Order-Independent", name: "{w | count(a) = count(b)}",
-    desc: "Equal number of a and b in any order. Stack tracks surplus of either symbol.",
-    gamma: "Z,A,B", sample: "aabbba",
-    states: [{name:"q0",isStart:true,isFinal:true}],
-    transitions: [
-      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q0"},{from:"q0",input:"a",pop:"A",push:"AA",to:"q0"},
-      {from:"q0",input:"a",pop:"B",push:"e", to:"q0"},{from:"q0",input:"b",pop:"Z",push:"BZ",to:"q0"},
-      {from:"q0",input:"b",pop:"B",push:"BB",to:"q0"},{from:"q0",input:"b",pop:"A",push:"e", to:"q0"}
-    ]
-  },
-  {
-    id: "anbmcnm", tag: "Multi-Counter", name: "{a^n b^m c^(n+m) | n,m >= 0}",
-    desc: "Stack accumulates A and B markers in sequence, then pops one per c.",
-    gamma: "Z,A,B", sample: "aabbcccc",
-    states: [
-      {name:"q0",isStart:true, isFinal:false},{name:"q1",isStart:false,isFinal:false},
-      {name:"q2",isStart:false,isFinal:false},{name:"q3",isStart:false,isFinal:true}
-    ],
-    transitions: [
-      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q0"},{from:"q0",input:"a",pop:"A",push:"AA",to:"q0"},
-      {from:"q0",input:"b",pop:"Z",push:"BZ",to:"q1"},{from:"q0",input:"b",pop:"A",push:"BA",to:"q1"},
-      {from:"q1",input:"b",pop:"Z",push:"BZ",to:"q1"},{from:"q1",input:"b",pop:"A",push:"BA",to:"q1"},
-      {from:"q1",input:"b",pop:"B",push:"BB",to:"q1"},
-      {from:"q1",input:"c",pop:"B",push:"e", to:"q2"},{from:"q0",input:"c",pop:"A",push:"e", to:"q2"},
-      {from:"q2",input:"c",pop:"A",push:"e", to:"q2"},{from:"q2",input:"c",pop:"B",push:"e", to:"q2"},
-      {from:"q2",input:"e",pop:"Z",push:"Z", to:"q3"},{from:"q0",input:"e",pop:"Z",push:"Z", to:"q3"}
-    ]
-  },
-  {
-    id: "anb2n", tag: "Ratio Language", name: "{a^n b^(2n) | n >= 0}",
-    desc: "Each a causes two stack pushes via an intermediate state. Demonstrates double-push logic.",
-    gamma: "Z,A", sample: "aaabbbbbb",
-    states: [
-      {name:"q0",isStart:true, isFinal:false},
-      {name:"q1",isStart:false,isFinal:false},
-      {name:"q2",isStart:false,isFinal:true}
-    ],
-    transitions: [
-      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q1"},{from:"q0",input:"a",pop:"A",push:"AA",to:"q1"},
-      {from:"q1",input:"e",pop:"A",push:"AA",to:"q0"},{from:"q1",input:"e",pop:"Z",push:"AZ",to:"q0"},
-      {from:"q0",input:"b",pop:"A",push:"e", to:"q0"},{from:"q0",input:"e",pop:"Z",push:"Z", to:"q2"}
-    ]
-  },
-  {
-    id: "reject_ab", tag: "Rejection Demo", name: "Rejects a^n b^m where n != m",
-    desc: "Same construction as anbn. Try inputs like aaab or abbb to observe rejection.",
-    gamma: "Z,A", sample: "aaab",
-    states: [
-      {name:"q0",isStart:true, isFinal:false},
-      {name:"q1",isStart:false,isFinal:false},
-      {name:"q2",isStart:false,isFinal:true}
-    ],
-    transitions: [
-      {from:"q0",input:"a",pop:"Z",push:"AZ",to:"q1"},
-      {from:"q1",input:"a",pop:"A",push:"AA",to:"q1"},
-      {from:"q1",input:"b",pop:"A",push:"e", to:"q2"},
-      {from:"q2",input:"b",pop:"A",push:"e", to:"q2"}
+      {from:"q0",input:"(",pop:"Z",push:"(Z",to:"q0"}, {from:"q0",input:"(",pop:"(",push:"((",to:"q0"},
+      {from:"q0",input:")",pop:"(",push:"ε", to:"q0"}, {from:"q0",input:"ε",pop:"Z",push:"Z", to:"q1"}
     ]
   }
 ];
@@ -1211,7 +1212,7 @@ function drawDiagram(activeState, activeStep) {
 
     if (g.from === g.to) {
       // 3. WIDER SELF-LOOPS
-      var lx = fp.x, ty = fp.y - r - 24; 
+      var lx = fp.x, ty = fp.y - r - 35; 
       var p = nsvg("path");
       p.setAttribute("d","M"+(lx-18)+","+(fp.y-r)+" C"+(lx-50)+","+(ty-25)+" "+(lx+50)+","+(ty-25)+" "+(lx+18)+","+(fp.y-r));
       p.setAttribute("fill","none");p.setAttribute("stroke",clr);p.setAttribute("stroke-width",isActGroup?"3":"2");
@@ -1226,7 +1227,7 @@ function drawDiagram(activeState, activeStep) {
       g.trans.forEach(function(t, i) {
          var tspan = nsvg("tspan");
          tspan.setAttribute("x", lx);
-         if (i > 0) tspan.setAttribute("dy", "15");
+         if (i > 0) tspan.setAttribute("dy", "16");
          var lbl = t.input + "," + t.pop + "/" + t.push;
          tspan.textContent = lbl;
          var isActThis = activeStep && t.from===activeStep.fromState && t.to===activeStep.toState && t.input===activeStep.readSym && t.pop===activeStep.popSym && t.push===activeStep.pushSym;
@@ -1241,7 +1242,7 @@ function drawDiagram(activeState, activeStep) {
     var ux=dx/dist, uy=dy/dist;
     var x1=fp.x+ux*r, y1=fp.y+uy*r, x2=tp.x-ux*r, y2=tp.y-uy*r;
     var key=[g.from, g.to].sort().join("|");
-    var bend=drawn[key]?35:0; drawn[key]=true; 
+    var bend=drawn[key]?50:0; drawn[key]=true; 
     var mx=(x1+x2)/2-uy*bend, my=(y1+y2)/2+ux*bend;
     
     var path = nsvg("path");
@@ -1252,14 +1253,14 @@ function drawDiagram(activeState, activeStep) {
     
     var tx2 = nsvg("text");
     tx2.setAttribute("x", mx);
-    tx2.setAttribute("y", my - 8 + textYOffset);  
+    tx2.setAttribute("y", my - 14 + textYOffset);  
     tx2.setAttribute("text-anchor","middle"); tx2.setAttribute("font-size","13"); // BIGGER FONT
     tx2.setAttribute("font-family","IBM Plex Mono");
     
     g.trans.forEach(function(t, i) {
          var tspan = nsvg("tspan");
          tspan.setAttribute("x", mx);
-         if (i > 0) tspan.setAttribute("dy", "15");
+         if (i > 0) tspan.setAttribute("dy", "16");
          var lbl = t.input + "," + t.pop + "/" + t.push;
          tspan.textContent = lbl;
          var isActThis = activeStep && t.from===activeStep.fromState && t.to===activeStep.toState && t.input===activeStep.readSym && t.pop===activeStep.popSym && t.push===activeStep.pushSym;
